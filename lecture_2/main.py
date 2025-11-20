@@ -21,7 +21,7 @@ def get_hobbies() -> list:
     Get a list of user's favorite hobbies.
 
     Returns:
-        list: Empty list for user hobbies.
+        list: List of user hobbies.
     """
     hobbies = []
     while True:
