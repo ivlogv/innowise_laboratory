@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -19,6 +19,11 @@ app = FastAPI(lifespan=lifespan)
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with SessionLocal() as session:
         yield session
+
+
+@app.get("/")
+async def root():
+    return {"status": "ok"}
 
 
 @app.get("/books/", response_model=list[schemas.BookRead])
@@ -53,8 +58,26 @@ async def delete_book(
 
 @app.put("/books/{book_id}", response_model=schemas.BookRead)
 async def update_book(
-    id: int,
+    book_id: int,
     book: schemas.BookUpdate,
     db: AsyncSession = Depends(get_db)
 ):
-    return await crud.update_book(db, id, book)
+    return await crud.update_book(db, book_id, book)
+
+
+@app.get("/books/search/", response_model=list[schemas.BookRead])
+async def search_books(
+    title: str | None = Query(
+        None,
+        min_length=1,
+        max_length=50
+    ),
+    author: str | None = Query(
+        None,
+        min_length=1,
+        max_length=50
+    ),
+    year: int | None = Query(None, ge=0),
+    db: AsyncSession = Depends(get_db)
+):
+    return await crud.search_books(db, title=title, author=author, year=year)

@@ -55,3 +55,22 @@ async def update_book(
     await session.commit()
     await session.refresh(book)
     return book
+
+
+async def search_books(
+    session: AsyncSession,
+    title: str | None = None,
+    author: str | None = None,
+    year: int | None = None
+):
+    stmt = select(Book)
+
+    if title:
+        stmt = stmt.filter(Book.title.ilike(f"%{title}%"))
+    if author:
+        stmt = stmt.filter(Book.author.ilike(f"%{author}%"))
+    if year is not None:
+        stmt = stmt.filter(Book.year == year)
+
+    result = await session.execute(stmt)
+    return result.scalars().all()
