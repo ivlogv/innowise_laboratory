@@ -11,7 +11,12 @@ DATABASE_URL = "sqlite+aiosqlite:///./lecture_5/books.db"
 
 
 # Create async engine and session maker
-engine: AsyncEngine = create_async_engine(url=DATABASE_URL, echo=True)
+engine: AsyncEngine = create_async_engine(
+    url=DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=300,
+)
 SessionLocal = async_sessionmaker(
     engine,
     expire_on_commit=False,

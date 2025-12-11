@@ -15,8 +15,8 @@ async def get_books(session: AsyncSession) -> list[Book]:
     Returns:
         list[Book]: List of all books.
     """
-    result = await session.execute(select(Book))
-    return result.scalars().all()
+    books = await session.execute(select(Book))
+    return list(books.scalars().all())
 
 
 async def get_book(session: AsyncSession, id: int) -> Book | None:
@@ -30,8 +30,8 @@ async def get_book(session: AsyncSession, id: int) -> Book | None:
     Returns:
         Book | None: The book if found, else None.
     """
-    result = await session.execute(select(Book).where(Book.id == id))
-    return result.scalar()
+    book = await session.execute(select(Book).where(Book.id == id))
+    return book.scalar_one_or_none()
 
 
 async def create_book(session: AsyncSession, book: BookCreate) -> Book:
@@ -45,7 +45,7 @@ async def create_book(session: AsyncSession, book: BookCreate) -> Book:
     Returns:
         Book: The created book.
     """
-    new_book = Book(title=book.title, author=book.author, year=book.year)
+    new_book = Book(**book.model_dump())
     session.add(new_book)
     await session.commit()
     await session.refresh(new_book)
@@ -66,8 +66,7 @@ async def delete_book(session: AsyncSession, id: int) -> Book:
     Raises:
         HTTPException: If the book is not found.
     """
-    result = await session.execute(select(Book).filter(Book.id == id))
-    book = result.scalar_one_or_none()
+    book = await session.get(Book, id)
 
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -95,18 +94,14 @@ async def update_book(
     Raises:
         HTTPException: If the book is not found.
     """
-    result = await session.execute(select(Book).filter(Book.id == id))
-    book = result.scalar_one_or_none()
+    book = await session.get(Book, id)
 
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    if data.title is not None:
-        book.title = data.title
-    if data.author is not None:
-        book.author = data.author
-    if data.year is not None:
-        book.year = data.year
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(book, key, value)
 
     await session.commit()
     await session.refresh(book)
